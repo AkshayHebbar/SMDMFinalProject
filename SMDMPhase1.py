@@ -17,11 +17,11 @@ def oauth():
     return tweepy.API(auth)
 
 
-def get_users(api, cities, itr):
+def get_users(api, cities, max_pages):
     geo_users = []
     depth = 1
     for i in cities:
-        while depth <= itr:
+        while depth <= max_pages:
             try:
                 geo_users.extend(api.search_users(q=i, page=depth))
                 print(len(geo_users))
