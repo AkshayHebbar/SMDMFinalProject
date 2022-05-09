@@ -130,6 +130,62 @@ if __name__ == "__main__":
     geo_users_name_filtered = valid_users(geo_users_dump,places)
     load_mongodb(geo_users_name_filtered)
 
+    
+    def cleantext(text):
+    text = re.sub(r'@[A-Za-z0-9]+','' ,text)
+    text = re.sub(r'#','',text)
+    text = re.sub(r'RT[\s]+','',text)
+    text = re.sub(r'https?:\/\/\S+','', text)
+
+    return text
+
+def getsubjectivity(text):
+    return textblob.TextBlob(text).sentiment.subjectivity
+
+def getpolarity(text):
+    return textblob.TextBlob(text).sentiment.polarity
+
+def tweet_analysis(score):
+    if score < 0:
+        return 'Negative'
+    elif score == 0:
+        return 'Neutral'
+    else:
+        return 'Positive'
+
+
+def get_tweets_polarity(api,user):
+    tweets = []
+    tweets_polarity = {}
+    tweets = api.user_timeline(user_id = user,count = 100,tweet_mode = "extended")
+    for tweet in tweets:
+        clean_tweet = cleantext(tweet.full_text)
+        tweet_polarity = getpolarity(clean_tweet)
+        tweet_sense = tweet_analysis(tweet_polarity)
+        words = clean_tweet.split(" ")
+        for word in words:
+            if word not in tweets_polarity.keys():
+                tweets_polarity[word] = tweet_sense
+
+    return tweets_polarity
+
+def get_matching_users(api, prime_user, users):
+
+    prime_user_tweets_polarity = get_tweets_polarity(api,prime_user)
+    final_users = []
+
+    for user in users:
+        count = 0
+        user_tweets_polarity = get_tweets_polarity(api,user)
+        for word in user_tweets_polarity:
+            if word in prime_user_tweets_polarity:
+                if user_tweets_polarity[word] == prime_user_tweets_polarity[word]:
+                    count = count + 1
+                if count == 50:
+                    final_user.append(user)
+                    break
+    return final_users
+
 
 # ['Chicago', 'Houston', 'Dallas', 'Austin', 'Seattle', 'Denver', 'Las Vegas', 'Boston', 'Charlotte',
 # 'Nashville', 'Atlanta', 'Cleveland', 'Irvine', 'Buffalo', 'Yonkers',]
