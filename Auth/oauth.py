@@ -1,11 +1,17 @@
 import tweepy
+from .keyhash import Hash
+from .keys import Keys
 
-def oauth():
-    consumer_key = 'bIcIUee01j6hzvNl8GABYRkNw'
-    consumer_secret = 'nRgigF5MzKnec4GKJTApQtHxVm8azOrF5DJsmfx007NuCaqJVX'
-    OAUTH_TOKEN = '2199301128-R8n4JUQot2w4wwHa4cGGb61V7ZaZ95kIlmdA6Oj'
-    OAUTH_TOKEN_SECRET = 'gC3RoazOZ6ZvCVQUCKB2MWi80P9TF7JTbLLLHHQIUB4gL'
+class Oauth:
+    def __init__(self,num):
+        self.index = num
 
-    auth = tweepy.OAuthHandler(consumer_key = consumer_key,consumer_secret = consumer_secret)
-    auth.set_access_token(OAUTH_TOKEN, OAUTH_TOKEN_SECRET)
-    return(tweepy.API(auth))
+    def oauth(self):
+        next_auth = 'hash'+str(self.index)
+        for h in Hash:
+            if h.name == next_auth:
+                print(h.name)
+                consumer,oauth = h.value
+        auth = tweepy.OAuthHandler(consumer[0],consumer[1])
+        auth.set_access_token(oauth[0],oauth[1])
+        return(tweepy.API(auth))

@@ -52,3 +52,9 @@ class database:
         else:
             return [ item for item in cursor ]
         
+    def delete_mongo(self,id=None,criteria=None):
+        if id is not None:
+            self.col.delete_one({"user_id": id})
+        if criteria is not None:
+            self.col.delete_many(criteria)
+        

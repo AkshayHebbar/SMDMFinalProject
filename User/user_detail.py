@@ -1,8 +1,17 @@
+import os
 import json
 import time
 import tweepy
 import pandas as pd
+import operator
+import random
 from urllib.request import urlopen
+from tweepy.cursor import Cursor
+from Auth.oauth import Oauth
+
+
+def get_user_profile(api,screenName=None, userId=None):   
+    return api.get_user(user_id = userId,screen_name = screenName)
 
 def get_geo_users(api,cities,itr):
     geo_users = []
@@ -26,8 +35,14 @@ def get_geo_users(api,cities,itr):
     return geo_users
 
 def filter_name_geo(geo_user,cities):
-    last_name = pd.read_csv(r'<pathname>/Common_Surnames_Census_2000.csv')
-    first_name = pd.read_excel(r'<pathname>/SSA_Names_DB.xlsx')
+    #working_dir = str(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+    #working_dir = working_dir.replace("\\","/")
+    #firstname_file = working_dir + '/SSA_Names_DB.xlsx'
+    #lastname_file = working_dir + '/Common_Surnames_Census_2000.csv'
+    #last_name = pd.read_csv(r'')
+    #first_name = pd.read_excel(working_dir + '/SSA_Names_DB.xlsx')
+    last_name = pd.read_csv(r'D:/College/Courses/Syracuse/Spring-22/SMDM/Project/Workspace_Akshay/SMDMFinalProject/Common_Surnames_Census_2000.csv')
+    first_name = pd.read_excel(r'D:/College/Courses/Syracuse/Spring-22/SMDM/Project/Workspace_Akshay/SMDMFinalProject/SSA_Names_DB.xlsx')
     last_name_users = pd.DataFrame(last_name, columns = ['name'])
     first_name_users = pd.DataFrame(first_name, columns = ['Name'])
 
@@ -80,7 +95,72 @@ def filter_gender(api,users,screen_name):
 
     return final_user
 
-def get_user_profile(api,screenName=None, userId=None):   
-    return api.get_user(user_id = userId,screen_name = screenName)
-    
+def filter_friends(api,users,my_user,retry=0,dict_user = {},no_friends_list = []):
+    print("\n*******************------------------****************\n")
+    try:
+        print("Finding friends for : ",my_user.screen_name)
+        user_friends = set(api.get_friend_ids(screen_name = my_user.screen_name))
+        print("my user friends :", len(user_friends))
         
+        #for page in Cursor(api.get_friend_ids,screen_name = my_user.screen_name).pages():
+        #    print("current page :",page)
+        #    user_friends |= set(page)
+        #    print(len(page))
+
+        count = 0
+        index = 0
+        prev_index = -1
+        while index <len(users):
+            print("prev:",prev_index,"curr:",index)
+            if prev_index == index:
+                count += 1                
+                
+            try:
+                prev_index = index
+                print("Finding friends for",users[index]['user_screen_name'])
+                friends_list = set(api.get_friend_ids(screen_name = users[index]['user_screen_name']))
+                print("User:", users[index]['user_screen_name'], "friends count :",len(friends_list))
+                dict_user[users[index]['user_id']] = len(user_friends&friends_list)
+                print("User Dict",dict_user)
+                print(dict_user)
+                index += 1
+            except tweepy.errors.TooManyRequests:
+                if count >6:
+                    print("No Friends for",users[index]['user_screen_name'])
+                    no_friends_list.append(users[index])
+                    index +=1
+                api = Oauth(index%6).oauth()
+                print("Using key hash:",index%6)
+            except Exception:
+                no_friends_list.append(users[index])
+                index +=1
+                            
+    except tweepy.errors.TooManyRequests:
+        if retry > 8:
+            print("Requests across all keys timed out ! Waiting for rate limit refresh...")
+            retry = 0
+            time.sleep(900)
+        retry = retry + 1
+        api = Oauth(retry%6).oauth()
+        print("Changed to key hash:", retry%6)
+        print("Retry Count",retry)
+        filter_friends(api,users,my_user,retry,dict_user,no_friends_list)
+    except tweepy.errors.Unauthorized:
+        print("experencing 401 error")
+    except tweepy.errors.TwitterServerError:
+        print("experencing 503 error")
+    except tweepy.errors.BadRequest:
+        print("experencing 400 error")
+    except tweepy.errors.NotFound:
+        print("experencing 404 error")
+    except Exception as e:
+        print(e)
+        
+    print("no friends for:",len(no_friends_list))
+                    
+    print(dict(sorted(dict_user.items(), key=operator.itemgetter(1), reverse=True)[:10]))
+    #dict_user = {k: v for k, v in sorted(dict_user.items(), key=lambda item: item[1], reverse = True)}
+    #result = dict(sorted(dict_user.items(), key=operator.itemgetter(1), reverse=True)[:10]).keys()
+    #result = result if result not {} else random.sample(user_friends,10)def 
+    # filter gender
+    return dict(sorted(dict_user.items(), key=operator.itemgetter(1), reverse=True)[:10]).keys()
