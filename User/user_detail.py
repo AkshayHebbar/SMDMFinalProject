@@ -5,13 +5,71 @@ import tweepy
 import pandas as pd
 import operator
 import random
+import regex as re
 from urllib.request import urlopen
 from tweepy.cursor import Cursor
 from Auth.oauth import Oauth
+import textblob as textblob
+
+def cleantext(text):
+    text = re.sub(r'@[A-Za-z0-9]+','' ,text)
+    text = re.sub(r'#','',text)
+    text = re.sub(r'RT[\s]+','',text)
+    text = re.sub(r'https?:\/\/\S+','', text)
+
+    return text
+
+def getsubjectivity(text):
+    return textblob.TextBlob(text).sentiment.subjectivity
+
+def getpolarity(text):
+    return textblob.TextBlob(text).sentiment.polarity
+
+def tweet_analysis(score):
+    if score < 0:
+        return 'Negative'
+    elif score == 0:
+        return 'Neutral'
+    else:
+        return 'Positive'
+
+
+def get_tweets_polarity(api,user):
+    tweets = []
+    tweets_polarity = {}
+    tweets = api.user_timeline(user_id = user,count = 100,tweet_mode = "extended")
+    for tweet in tweets:
+        clean_tweet = cleantext(tweet.full_text)
+        tweet_polarity = getpolarity(clean_tweet)
+        tweet_sense = tweet_analysis(tweet_polarity)
+        words = clean_tweet.split(" ")
+        for word in words:
+            if word not in tweets_polarity.keys():
+                tweets_polarity[word] = tweet_sense
+
+    return tweets_polarity
+
+def get_matching_users(api, prime_user, users):
+
+    prime_user_tweets_polarity = get_tweets_polarity(api,prime_user)
+    final_users = []
+
+    for user in users:
+        count = 0
+        user_tweets_polarity = get_tweets_polarity(api,user)
+        for word in user_tweets_polarity:
+            if word in prime_user_tweets_polarity:
+                if user_tweets_polarity[word] == prime_user_tweets_polarity[word]:
+                    count = count + 1
+                if count == 50:
+                    final_users.append(user)
+                    break
+    return final_users
 
 
 def get_user_profile(api,screenName=None, userId=None):   
     return api.get_user(user_id = userId,screen_name = screenName)
+
 
 def get_geo_users(api,cities,itr):
     geo_users = []
@@ -33,6 +91,7 @@ def get_geo_users(api,cities,itr):
             depth += 1
         depth = 1
     return geo_users
+
 
 def filter_name_geo(geo_user,cities):
     #working_dir = str(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
@@ -70,9 +129,8 @@ def filter_name_geo(geo_user,cities):
     return geo_user_name_filtered
 
 
-def filter_gender(api,users,screen_name):
-    final_user = []
-    myKey = ""
+def filter_gender(api,screen_name):
+    myKey = "BB8Gl8Nu3dPWzG2NNVLPSeko5hsFlcabCo5T"
 
     main_user = api.get_user(screen_name = screen_name)
     first_name = main_user.name.split(" ")[0]
@@ -83,17 +141,8 @@ def filter_gender(api,users,screen_name):
     data = json.loads(decoded)
     main_user_gender = data["gender"]
 
-    for user in users:
-        #fields = user.name.split(" ")
-        user_first = user.name.split(" ")[0]
-        url = "https://gender-api.com/get?key=" + myKey + "&name=" + user_first.upper()
-        response = urlopen(url)
-        decoded = response.read().decode('utf-8')
-        data = json.loads(decoded)
-        if data["gender"] != main_user_gender:
-            final_user.append(user)
+    return 'male' if main_user_gender == 'female' else 'female'
 
-    return final_user
 
 def filter_friends(api,users,my_user,retry=0,dict_user = {},no_friends_list = []):
     print("\n*******************------------------****************\n")
@@ -111,7 +160,6 @@ def filter_friends(api,users,my_user,retry=0,dict_user = {},no_friends_list = []
         index = 0
         prev_index = -1
         while index <len(users):
-            print("prev:",prev_index,"curr:",index)
             if prev_index == index:
                 count += 1                
                 
@@ -157,7 +205,6 @@ def filter_friends(api,users,my_user,retry=0,dict_user = {},no_friends_list = []
         print(e)
         
     print("no friends for:",len(no_friends_list))
-                    
     print(dict(sorted(dict_user.items(), key=operator.itemgetter(1), reverse=True)[:10]))
     #dict_user = {k: v for k, v in sorted(dict_user.items(), key=lambda item: item[1], reverse = True)}
     #result = dict(sorted(dict_user.items(), key=operator.itemgetter(1), reverse=True)[:10]).keys()
