@@ -93,15 +93,15 @@ def get_geo_users(api,cities,itr):
     return geo_users
 
 
-def filter_name_geo(geo_user,cities):
+def filter_name_geo(geo_user,cities,csv_path,excel_path):
     #working_dir = str(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
     #working_dir = working_dir.replace("\\","/")
     #firstname_file = working_dir + '/SSA_Names_DB.xlsx'
     #lastname_file = working_dir + '/Common_Surnames_Census_2000.csv'
     #last_name = pd.read_csv(r'')
     #first_name = pd.read_excel(working_dir + '/SSA_Names_DB.xlsx')
-    last_name = pd.read_csv(r'D:/College/Courses/Syracuse/Spring-22/SMDM/Project/Workspace_Akshay/SMDMFinalProject/Common_Surnames_Census_2000.csv')
-    first_name = pd.read_excel(r'D:/College/Courses/Syracuse/Spring-22/SMDM/Project/Workspace_Akshay/SMDMFinalProject/SSA_Names_DB.xlsx')
+    last_name = pd.read_csv(r'{0}'.format(csv_path))
+    first_name = pd.read_excel(r'{0}'.format(excel_path))
     last_name_users = pd.DataFrame(last_name, columns = ['name'])
     first_name_users = pd.DataFrame(first_name, columns = ['Name'])
 

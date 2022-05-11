@@ -31,11 +31,14 @@ if __name__ == "__main__":
     print("User location : {0}".format(my_user.profile_location))
     print("************************************************************************************************")
 
+    geo_users_dump = []
+    csv_path = input("Input the path of Common_Surnames_Census_2000.csv: ")
+    xls_path = input("Input the path of SSA_Names_DB.xlsx: ")
+    # Preprocessed 
     places = ['Chicago', 'Houston', 'Dallas', 'Austin', 'Seattle', 'Denver', 'Las Vegas', 'Boston', 'Charlotte',
               'Nashville', 'Atlanta', 'Cleveland', 'Irvine', 'Buffalo', 'Yonkers']
-    #geo_users_dump = get_geo_users(api,places,50)
-    geo_users_dump = []
-    #geo_users_name_filtered = filter_name_geo(geo_users_dump,places)
+    #geo_users_dump = get_geo_users(api,places,50)        
+    #geo_users_name_filtered = filter_name_geo(geo_users_dump,places,csv_path,excel_path)
     #gender_users_filtered = filter_gender(api,geo_users_name_filtered,my_user.screen_name)
     #print(len(gender_users_filtered))
     mongo = mongo.database(db,collection);
